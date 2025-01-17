@@ -1,0 +1,279 @@
+---
+- name: Install the necessary Kubernetes prerequisites on both master and worker nodes.
+  hosts: all
+  become: true
+  tasks:
+    - name: Install required packages for the k8slab
+      ansible.builtin.apt:
+        update_cache: true
+        name:
+          - vim
+          - curl
+          - apt-transport-https
+          - wget
+          - software-properties-common
+          - lsb-release
+          - ca-certificates
+          - socat
+
+    - name: Disable swap - This will keep swap disabled until a system reboot
+      ansible.builtin.command:
+        cmd: swapoff -a
+      changed_when: false
+
+    - name: Disable swap from /etc/fstab - This will disable the swap permanently
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+        replace: '# \1'
+
+    - name: Load overlay kernel module
+      ansible.builtin.command:
+        cmd: modprobe overlay
+      changed_when: false
+
+    - name: Load br_netfilter kernel module
+      ansible.builtin.command:
+        cmd: modprobe br_netfilter
+      changed_when: false
+
+    - name: Load kernel modules persistently
+      ansible.builtin.blockinfile:
+        path: /etc/modules-load.d/kubernetes.conf
+        create: true
+        mode: "0644"
+        block: |
+          overlay
+          br_netfilter
+
+    - name: Update kernel networking to allow necessary traffic
+      ansible.builtin.lineinfile:
+        path: /etc/sysctl.d/kubernetes.conf
+        line: "{{ item }}"
+        create: true
+        mode: "0644"
+      loop:
+        - "net.bridge.bridge-nf-call-ip6tables = 1"
+        - "net.bridge.bridge-nf-call-iptables  = 1"
+        - "net.ipv4.ip_forward                 = 1"
+
+    - name: Apply sysctl settings
+      ansible.builtin.command:
+        cmd: sysctl --system
+      register: sysctl_output
+      changed_when: sysctl_output.rc == 0
+
+    - name: Install containerd
+      ansible.builtin.apt:
+        update_cache: true
+        name: containerd
+        state: present
+
+    - name: Create /etc/containerd directory
+      ansible.builtin.file:
+        path: /etc/containerd
+        state: directory
+        mode: '0755'
+
+    - name: Add containerd configuration
+      ansible.builtin.shell:
+        cmd: containerd config default > /etc/containerd/config.toml
+      changed_when: false
+
+    - name: Configuring Systemd cgroup driver for containerd
+      ansible.builtin.lineinfile:
+        path: /etc/containerd/config.toml
+        regexp: "            SystemdCgroup = false"
+        line: "            SystemdCgroup = true"
+
+    - name: Enable the containerd service and start service
+      ansible.builtin.systemd:
+        name: containerd
+        state: restarted
+        enabled: true
+        daemon-reload: true
+
+    - name: Create /etc/apt/keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download the public signing key for the Kubernetes package repositories
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Add Kubernetes APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /"
+        update_cache: true
+        state: present
+        filename: /etc/apt/sources.list.d/kubernetes
+
+    - name: Install kubeadm,kublet and kubectl
+      ansible.builtin.apt:
+        name:
+          - kubeadm=1.30.1-1.1
+          - kubelet=1.30.1-1.1
+          - kubectl=1.30.1-1.1
+        state: present
+
+    - name: Mark kubeadm,kubelet and kubectl as hold
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubeadm
+        - kubelet
+        - kubectl
+
+- name: Configure K8S master node
+  hosts: masters
+  become: true
+  tasks:
+    - name: Get the host IP address
+      ansible.builtin.command:
+        cmd: hostname -i
+      register: hostname_output
+      changed_when: hostname_output.rc == 0
+
+    - name: Set k8scp in the /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ hostname_output.stdout }} k8scp"
+
+    - name: Set hostname fact
+      ansible.builtin.set_fact:
+        hostname_fact: "{{ hostname_output.stdout }}"
+      when: inventory_hostname == "k8scp"
+
+    - name: Create empty file for kubeadmin
+      ansible.builtin.copy:
+        content: ""
+        dest: /etc/kubernetes/kubeadm-config.yaml
+        force: false
+        mode: preserve
+
+    - name: Configure Kubernetes cluster
+      ansible.builtin.blockinfile:
+        path: /etc/kubernetes/kubeadm-config.yaml
+        block: |
+          apiVersion: kubeadm.k8s.io/v1beta3
+          kind: ClusterConfiguration
+          kubernetesVersion: 1.30.1
+          controlPlaneEndpoint: "k8scp:6443"
+          networking:
+            podSubnet: 192.168.0.0/16
+
+    - name: Initialize the Kubernetes cluster
+      ansible.builtin.shell:
+        cmd: |
+         set -o pipefail
+         kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --upload-certs --node-name=k8scp
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Create .kube directory
+      become: true
+      become_user: ubuntu
+      ansible.builtin.file:
+        path: $HOME/.kube
+        state: directory
+        mode: "0755"
+
+    - name: Copy admin.conf to .kube directory
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ubuntu/.kube/config
+        remote_src: true
+        mode: preserve
+        owner: ubuntu
+
+    - name: Intall package "bash-completion"
+      ansible.builtin.apt:
+        name: bash-completion
+        state: present
+
+    - name: Add the completion in the ".bashrc" file
+      become: true
+      become_user: ubuntu
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          echo "source <(kubectl completion bash)" >> $HOME/.bashrc
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Download Helm installation script
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        dest: /tmp/get-helm.sh
+        mode: "0700"
+
+    - name: Run Helm installation script
+      ansible.builtin.command:
+        cmd: /tmp/get-helm.sh
+      changed_when: false
+
+    - name: Generate cilium.yaml
+      ansible.builtin.shell:
+        cmd: |
+           set -o pipefail
+           helm repo add cilium https://helm.cilium.io/
+           helm repo update
+           helm template cilium cilium/cilium --version 1.16.1 --namespace kube-system > /etc/kubernetes/cilium-cni.yaml
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Set the pod network in Cilium
+      ansible.builtin.replace:
+        path: /etc/kubernetes/cilium-cni.yaml
+        after: 'cluster-pool-ipv4-cidr:'
+        regexp: '["][0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]["]+$'
+        replace: '"192.168.0.0/16"'
+      tags: test
+
+    - name: Install pod network
+      become: true
+      become_user: ubuntu
+      ansible.builtin.shell:
+        cmd: |
+           set -o pipefail
+           kubectl apply -f /etc/kubernetes/cilium-cni.yaml
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Get the join command
+      ansible.builtin.command:
+        cmd: sudo kubeadm token create --print-join-command
+      register: join_command
+      changed_when: false
+
+    - name: Set the join command as ansible fact
+      ansible.builtin.set_fact:
+        join_fact: "{{ join_command.stdout_lines[0] }} --node-name=worker"
+
+- name: Configure Kubernetes worker nodes
+  hosts: workers
+  become: true
+  tasks:
+    - name: Set k8scp in the /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars['k8scp']['hostname_fact'] }} k8scp"
+
+    - name: Check if the master node port is open
+      ansible.builtin.wait_for:
+        host: k8scp
+        port: 6443
+        state: started
+
+    - name: Join the cluster
+      ansible.builtin.shell:
+        cmd: "{{ hostvars['k8scp']['join_fact'] }}"
+        executable: /bin/bash
+      changed_when: false
