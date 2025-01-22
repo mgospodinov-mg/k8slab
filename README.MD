@@ -3,8 +3,7 @@ This project aims to facilitate the creation of simple Kubernetes cluster in AWS
 
 
 ## Prerequisite
-You should have AWS account created. If you haven't already, install and configure the AWS CLI.
-OpenToFu and Ansible are also required.
+You should have AWS account created. Install and configure the AWS CLI. OpenToFu and Ansible are also necessary.
 
 ## How to create simple K8S lab
 Clone the repository 
@@ -40,11 +39,13 @@ tofu apply -var='aws_region="us-east-1"' -var="instance_type=t2.medium"
 ### Run Ansible
 
 In the Ansible invetory file add the public IP addresses of the master node and worker node. No need to change anything else.
-Switch to the ansible directory "<path>/ansible_k8slab" and run the command
+Navigate to the ansible directory "<path>/ansible_k8slab" and execute the command below. 
 
 ```
 ansible-playbook -i inventory.ini playbooks/k8slab-playbook.yaml -v
 ```
+
+By default the playbook will install Kubernetes 1.30.1
 
 ### Connect to the Kuberntes cluster
 
