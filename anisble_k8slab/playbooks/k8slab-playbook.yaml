@@ -119,9 +119,9 @@
     - name: Install kubeadm,kublet and kubectl
       ansible.builtin.apt:
         name:
-          - kubeadm={{ kubeadm_ver }}
-          - kubelet={{ kubelet_ver }}
-          - kubectl={{ kubectl_ver }}
+          - kubeadm="{{ kubeadm_ver }}"
+          - kubelet="{{ kubelet_ver }}"
+          - kubectl="{{ kubectl_ver }}"
         state: present
 
     - name: Mark kubeadm,kubelet and kubectl as hold
@@ -168,7 +168,7 @@
         block: |
           apiVersion: kubeadm.k8s.io/v1beta3
           kind: ClusterConfiguration
-          kubernetesVersion: {{ kubernetes_ver }}
+          kubernetesVersion: "{{ kubernetes_ver }}"
           controlPlaneEndpoint: "k8scp:6443"
           networking:
             podSubnet: 192.168.0.0/16
