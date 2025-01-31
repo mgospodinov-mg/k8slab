@@ -1,6 +1,8 @@
 ---
 - name: Install the necessary Kubernetes prerequisites on both master and worker nodes.
   hosts: all
+  vars_files:
+    - variables.yaml
   become: true
   tasks:
     - name: Install required packages for the k8slab
@@ -103,7 +105,7 @@
       ansible.builtin.shell:
         cmd: |
           set -o pipefail
-          curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+          curl -fsSL https://pkgs.k8s.io/core:/stable:/v"{{ kuberepo_ver }}"/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
         executable: /bin/bash
       changed_when: false
 
@@ -117,9 +119,9 @@
     - name: Install kubeadm,kublet and kubectl
       ansible.builtin.apt:
         name:
-          - kubeadm=1.30.1-1.1
-          - kubelet=1.30.1-1.1
-          - kubectl=1.30.1-1.1
+          - kubeadm={{ kubeadm_ver }}
+          - kubelet={{ kubelet_ver }}
+          - kubectl={{ kubectl_ver }}
         state: present
 
     - name: Mark kubeadm,kubelet and kubectl as hold
@@ -133,6 +135,8 @@
 
 - name: Configure K8S master node
   hosts: masters
+  vars_files:
+    - variables.yaml
   become: true
   tasks:
     - name: Get the host IP address
@@ -164,7 +168,7 @@
         block: |
           apiVersion: kubeadm.k8s.io/v1beta3
           kind: ClusterConfiguration
-          kubernetesVersion: 1.30.1
+          kubernetesVersion: {{ kubernetes_ver }}
           controlPlaneEndpoint: "k8scp:6443"
           networking:
             podSubnet: 192.168.0.0/16
