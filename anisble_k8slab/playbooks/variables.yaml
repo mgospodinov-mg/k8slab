@@ -1,6 +1,13 @@
 ---
+#Variables required for the k8slab playbook
+
+#Define Kubernetes repository version
 kuberepo_ver: "1.30"
+#Define Kubernetes version
 kubernetes_ver: "1.30.1"
+#Define kubeadm version
 kubeadm_ver: "1.30.1-1.1"
+#Define kubelet version
 kubelet_ver: "1.30.1-1.1"
+#Define kubectl version
 kubectl_ver: "1.30.1-1.1"

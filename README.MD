@@ -47,6 +47,8 @@ ansible-playbook -i inventory.ini playbooks/k8slab-playbook.yaml -v
 
 By default the playbook will install Kubernetes 1.30.1
 
+To install a different Kubernetes version, modify the variables within the variables.yaml file.
+
 ### Connect to the Kuberntes cluster
 
 Connect to the control plane using ssh. Go to the <path>/opentofu_k8slab/sshkeys directory
