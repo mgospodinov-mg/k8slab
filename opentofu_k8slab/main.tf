@@ -114,5 +114,12 @@ resource "aws_instance" "worker" {
   }
 }
 
-
-
+resource "local_file" "ansible_inventory" {
+  content = templatefile("./templates/inventory.tftpl",
+    {
+      master_ip = aws_instance.master.public_ip
+      worker_ip = aws_instance.worker.public_ip
+    }
+  )
+  filename = "../ansible_k8slab/inventory.ini"
+}
