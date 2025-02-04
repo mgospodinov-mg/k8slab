@@ -38,7 +38,7 @@ tofu apply -var='aws_region="us-east-1"' -var="instance_type=t2.medium"
 
 ### Run Ansible
 
-The Ansible inventory file is automatically populated with the correct IP addresses.. No need to change anything else.
+The Ansible inventory file is automatically populated with the correct IP addresses. No need to change anything else.
 Navigate to the ansible directory "<path>/ansible_k8slab" and execute the command below. 
 
 ```
