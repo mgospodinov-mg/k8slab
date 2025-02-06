@@ -14,7 +14,7 @@ git clone https://github.com/mgospodinov-mg/K8SLab.git
 
 ### Generare SSH key
 
-Generate SSH key and put it in the "<path>/opentofu_k8slab/sshkeys" directory
+Generate SSH key and put it in the "<path>/opentofu_k8slab/sshkeys" directory.
 Name the keys k8slab and k8slab.pem.
 
 ```
