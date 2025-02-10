@@ -12,17 +12,6 @@ Clone the repository
 git clone https://github.com/mgospodinov-mg/K8SLab.git
 ```
 
-### Generare SSH key
-
-Generate SSH key and put it in the "<path>/opentofu_k8slab/sshkeys" directory.
-Name the keys k8slab and k8slab.pem.
-
-```
-ssh-keygen -t ed25519 -C "<comment>"
-```
-Note: ED25519 keys are considered more secure and performant than RSA keys.
-They are compact, fast to generate, and offer better security with faster performance compared to DSA or ECDSA.
-
 ### Run OpenTofu 
 
 By default the aws region is "us-west-2" and the instance type is "t2.large". Of course you may change them when you run the tofu command.
@@ -36,6 +25,8 @@ If you want to modify the variables
 ```
 tofu apply -var='aws_region="us-east-1"' -var="instance_type=t2.medium"
 ```
+
+OpenTofu will generate an SSH key for accessing EC2 instances; this key will be located in the sshkeys directory.
 
 ### Run Ansible
 
