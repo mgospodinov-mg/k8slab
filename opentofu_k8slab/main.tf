@@ -141,6 +141,7 @@ resource "aws_instance" "master" {
 }
 
 resource "aws_instance" "worker" {
+  count = var.number_workers
   ami           = data.aws_ami.ubuntu2404.id
   instance_type = var.instance_type
   subnet_id = aws_subnet.k8slab_subnet.id
@@ -153,7 +154,7 @@ resource "aws_instance" "worker" {
   }  
 
   tags = {
-    Name = "Worker node"
+    Name = "Worker${count.index} node"
   }
 }
 
@@ -161,7 +162,7 @@ resource "local_file" "ansible_inventory" {
   content = templatefile("./templates/inventory.tftpl",
     {
       master_ip = aws_instance.master.public_ip
-      worker_ip = aws_instance.worker.public_ip
+      worker_ip = aws_instance.worker.*.public_ip
     }
   )
   filename = "../ansible_k8slab/inventory.ini"

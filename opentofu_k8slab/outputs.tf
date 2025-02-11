@@ -5,5 +5,5 @@ output "master_node_ip_addr" {
 
 output "worker_node_ip_addr" {
   description = "The public IP address of the worker node."
-  value       = aws_instance.worker.public_ip
+  value       = aws_instance.worker[*].public_ip
 }

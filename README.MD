@@ -14,7 +14,7 @@ git clone https://github.com/mgospodinov-mg/K8SLab.git
 
 ### Run OpenTofu 
 
-By default the aws region is "us-west-2" and the instance type is "t2.large". Of course you may change them when you run the tofu command.
+By default the aws region is "us-west-2", the instance type is "t2.large" and the number of worker nodes is "1". Of course you may change them when you run the tofu command.
 
 ```
 tofu plan
@@ -23,7 +23,7 @@ tofu apply
 If you want to modify the variables
 
 ```
-tofu apply -var='aws_region="us-east-1"' -var="instance_type=t2.medium"
+tofu apply -var="aws_region="us-east-1" -var="instance_type=t2.medium" -var="number_workers=2"
 ```
 
 OpenTofu will generate an SSH key for accessing EC2 instances; this key will be located in the sshkeys directory.
