@@ -73,24 +73,33 @@ resource "aws_route_table_association" "k8slab_association" {
 }
 
 resource "aws_security_group" "k8slab_security" {
-  name = "allow-all"
+  name        = "allow-all"
+  vpc_id      = aws_vpc.k8slab_vpc.id
+}
 
-  vpc_id = aws_vpc.k8slab_vpc.id
+resource "aws_vpc_security_group_ingress_rule" "allow_all_port" {
+  security_group_id = aws_security_group.k8slab_security.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 0
+  to_port           = 65535
+  ip_protocol       = "tcp"
+}
 
-  ingress {
-    cidr_blocks = ["0.0.0.0/0"]
-    from_port = 0
-    to_port   = 65535
-    protocol  = "tcp"
-  }
+resource "aws_vpc_security_group_ingress_rule" "allow_all_icmp" {
+  security_group_id = aws_security_group.k8slab_security.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 8
+  to_port           = 0
+  ip_protocol       = "icmp"
+}
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = -1
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}      
+resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
+  security_group_id = aws_security_group.k8slab_security.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 0
+  to_port        = 65535  
+  ip_protocol       = "-1" 
+}
 
 resource "tls_private_key" "generated_sshkey" {
   algorithm = "ED25519"
@@ -154,7 +163,7 @@ resource "aws_instance" "worker" {
   }  
 
   tags = {
-    Name = "Worker${count.index} node"
+    Name = "Worker${count.index + 1} node"
   }
 }
 
