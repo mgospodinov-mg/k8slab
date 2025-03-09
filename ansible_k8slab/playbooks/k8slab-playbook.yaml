@@ -260,6 +260,13 @@
       ansible.builtin.set_fact:
         join_fact: "{{ join_command.stdout_lines[0] }}"
 
+    - name: Allow pod scheduling on the control plane
+      become_user: ubuntu
+      ansible.builtin.command:
+        cmd: kubectl taint node k8scp node-role.kubernetes.io/control-plane:NoSchedule-
+      when: kubernetes_schedule_pods_control_plane | bool
+      changed_when: false
+
 - name: Configure Kubernetes worker nodes
   hosts: workers
   become: true
