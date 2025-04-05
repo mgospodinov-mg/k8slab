@@ -9,7 +9,7 @@ You should have AWS account created. Install and configure the AWS CLI. OpenToFu
 Clone the repository 
 
 ```
-git clone https://github.com/mgospodinov-mg/K8SLab.git
+git clone https://github.com/mgospodinov-mg/k8slab.git
 ```
 
 ### Run OpenTofu 
