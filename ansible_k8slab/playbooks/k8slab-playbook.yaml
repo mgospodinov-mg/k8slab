@@ -274,7 +274,6 @@
   hosts: workers
   become: true
   tasks:
-
     - name: Check if the master node port is open
       ansible.builtin.wait_for:
         host: "{{ hostvars['k8scp']['hostname_fact'] }}"
@@ -293,10 +292,10 @@
           kind: JoinConfiguration
           discovery:
             bootstrapToken:
-            token: "{{ hostvars['k8scp']['token_fact'] }}"
-            apiServerEndpoint: "{{ hostvars['k8scp']['hostname_fact'] }}:6443"
-            caCertHashes:
-              - "sha256:{{ hostvars['k8scp']['cert_hash_fact'] }}"
+              token: "{{ hostvars['k8scp']['token_fact'] }}"
+              apiServerEndpoint: "{{ hostvars['k8scp']['hostname_fact'] }}:6443"
+              caCertHashes:
+                - "sha256:{{ hostvars['k8scp']['cert_hash_fact'] }}"
           nodeRegistration:
             name: "{{ ansible_fqdn }}"
 
