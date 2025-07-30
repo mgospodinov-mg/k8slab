@@ -53,5 +53,6 @@ ssh -i <sshkey> ubuntu@<control plane public ip>
 kubectl get nodes
 ```
 
-Note: There is kubectl autocomplete installed and configured. 
+There is kubectl autocomplete installed and configured.
 
+**Note:** This cluster is not intended for production use. It is strictly for development and learning purposes only.
