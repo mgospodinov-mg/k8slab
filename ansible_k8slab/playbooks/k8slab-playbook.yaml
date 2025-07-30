@@ -21,7 +21,8 @@
     - name: Disable swap - This will keep swap disabled until a system reboot
       ansible.builtin.command:
         cmd: swapoff -a
-      changed_when: false
+      when: ansible_swaptotal_mb > 0
+      changed_when: ansible_swaptotal_mb > 0
 
     - name: Disable swap from /etc/fstab - This will disable the swap permanently
       ansible.builtin.replace:
@@ -30,14 +31,14 @@
         replace: '# \1'
 
     - name: Load overlay kernel module
-      ansible.builtin.command:
-        cmd: modprobe overlay
-      changed_when: false
+      ansible.builtin.command: modprobe overlay
+      register: overlay_mod
+      changed_when: overlay_mod.rc == 0
 
     - name: Load br_netfilter kernel module
-      ansible.builtin.command:
-        cmd: modprobe br_netfilter
-      changed_when: false
+      ansible.builtin.command: modprobe br_netfilter
+      register: br_netfilter_mod
+      changed_when: br_netfilter_mod.rc == 0
 
     - name: Load kernel modules persistently
       ansible.builtin.blockinfile:
@@ -80,7 +81,8 @@
     - name: Add containerd configuration
       ansible.builtin.shell:
         cmd: containerd config default > /etc/containerd/config.toml
-      changed_when: false
+        creates: /etc/containerd/config.toml
+        executable: /bin/bash
 
     - name: Configuring Systemd cgroup driver for containerd
       ansible.builtin.lineinfile:
@@ -107,7 +109,7 @@
           set -o pipefail
           curl -fsSL https://pkgs.k8s.io/core:/stable:/v"{{ kuberepo_ver }}"/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
         executable: /bin/bash
-      changed_when: false
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
     - name: Add Kubernetes APT repository
       ansible.builtin.apt_repository:
