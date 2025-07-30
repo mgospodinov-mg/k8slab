@@ -305,4 +305,6 @@
           set -o pipefail
           kubeadm join --config=/etc/kubernetes/kubeadm-node.yaml
         executable: /bin/bash
-      changed_when: false
+      register: join_output
+      changed_when: "'This node has joined the cluster' in join_output.stdout"
+      failed_when: join_output.rc != 0
